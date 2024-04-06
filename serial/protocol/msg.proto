@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package message;
+
+// 信息类型
+enum MsgType {
+	Msg_Auth 							= 0;	// 设备注册
+	Msg_AuthAck 					= 1;	// 注册应答
+	Msg_UnAuth						= 2;
+	Msg_Ping						  = 3;
+	Msg_Pong						  = 4;
+	Msg_OpenPort					= 5;
+	Msg_OpenPortAck				= 6;
+	Msg_ClosePort					= 7;
+	Msg_ClosePortAck			= 8;
+	Msg_Data							= 9;
+	Msg_DataAck						= 10;
+	Msg_GetConfig					= 11;
+	Msg_GetConfigAck			= 12;
+	Msg_GetPortList				= 13;
+	Msg_GetPortListAck		= 14;
+	Msg_State							= 15;
+}
+
+message MsgAuth{
+	uint64 	client_id 	= 1;
+}
+
+message MsgAuthAck{
+	bool result = 1;
+	string tip = 2;
+}
+
+message MsgConfig{
+	string name = 1;
+	uint32 baud = 2;
+	uint32 data_bit 	= 3;
+	uint32 data_parity = 4;
+	uint32 stop_bit = 5;
+}
+
+message MsgOpenPort {
+	string name = 1;
+	MsgConfig config = 2; // 可为空，为空时使用本地配置或默认配置
+}
+message MsgOpenPortAck {
+	bool result = 1;
+	string name = 2;
+	string tip = 3;
+	MsgConfig config = 4;
+}
+message MsgClosePort{
+	string name = 1;
+}
+message MsgClosePortAck {
+	bool result = 1;
+	string name = 2;
+	string tip = 3;
+}
+message MsgData {
+	uint32 sn = 1;
+	string name = 2;
+	bool  need_ack = 3; // 需确认是否已成功写入
+	bytes data = 4;
+}
+// 可选
+message MsgDataAck{
+	uint32 sn = 1;
+	string name = 2;
+	bool result = 3;
+}
+
+message MsgGetConfig{
+	string name = 1;
+}
+
+message MsgGetConfigAck{
+	bool result = 1;
+	string name = 2;
+	string tip = 3;
+	MsgConfig config = 4;
+}
+
+message MsgGetPortListAck{
+	bool result = 1;
+	string tip = 2;
+	repeated string port_list = 3;
+}
+message MsgState{
+	string name 	= 1;
+	bool 	 close 	= 2;
+}
+
+
+message MsgClientFrame {
+	MsgType     	msg_type 				= 1;
+	uint64 				src_id 					= 2;
+	MsgAuth				msg_auth				= 3;
+	MsgOpenPort		msg_open_com 		= 4;
+	MsgClosePort 	msg_close_com 	= 5;
+	MsgData 			msg_data				= 6;
+	MsgGetConfig	msg_get_config 	= 7;
+}
+
+// 服务端返回的普通消息
+message MsgServerFrame {
+	MsgType     		msg_type 						= 31;
+	uint64 					src_id 							= 32;
+	MsgAuthAck			msg_auth_ack				= 33;
+	MsgOpenPortAck		msg_open_port_ack 		= 34;
+	MsgClosePortAck 	msg_close_port_ack 	= 35;
+	MsgData					msg_data	 					= 36;
+	MsgDataAck			msg_data_ack				= 37;
+	MsgGetConfigAck	msg_get_config_ack 	= 38;
+	MsgGetPortListAck msg_port_list_ack		= 39;
+	MsgState 				msg_state						= 40;
+}
+
+

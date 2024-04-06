@@ -1,0 +1,196 @@
+syntax = "proto3";
+
+package protocol;
+// 信息类型
+enum MsgType {
+	Msg_Auth 							= 0;	// 设备注册
+	Msg_AuthAck 					= 1;	// 注册应答
+	Msg_UnAuth						= 2;
+	Msg_StateChanged			= 3;
+	Msg_Config						= 4;
+	Msg_ConfigAck					= 5;
+	Msg_Ping							= 6;
+	Msg_Pong							= 7;
+	Msg_GroupPeersRequest	= 8;
+	Msg_GroupPeersResponse= 9;
+	Msg_PeerLinksRequest	= 10;
+	Msg_PeerLinksResponse	= 11;
+	Msg_Packet						= 12;
+	Msg_P2PTrigger				= 13;
+	Msg_P2PAck					  = 14;
+	Msg_P2PTry						= 15;
+}
+message Sock  {
+	uint32 	Family =1;  /* AF_INET or AF_INET6; or 0 if invalid */
+	uint32	Port =2;    /* host order */
+	uint32 	Addr = 3;
+}
+message IpNet  {
+	uint32	net_addr = 1;
+	uint32	net_bit_len = 2;
+}
+message Statistics {
+	uint64  trans_send  	= 1;
+	uint64  trans_receive = 2;
+	uint64	p2p_send		  = 3;
+	uint64  p2p_receive	  = 4;
+}
+
+// 注册信息
+message MsgAuth {
+	uint64 peer_mac 	= 1; // 终端MAC,为0时自动分配
+	string peer_name 	= 2; // 终端名称
+	string group   		= 3; // 网络组名称
+	string password		= 4; // 注册密码
+	string peer_os		= 5; // 终端操作系统
+	IpNet  peer_addr 	= 6; // 终端IP地址,为ip 和 掩码 都为0时 自动分配
+	IpNet  inner_addr 	= 7; // 本地IP地址
+	bool   auto_mac		= 8; // 服务端分配MAC
+	bool   auto_ip		= 9; // 服务端分配IP
+	uint32 link_mode = 10; // 连接方式 0 unknown 1 RJ45 2 WIFI 3 GPRS
+	uint32 link_quality= 11; // 信号值 0-100
+}
+message MsgAuthAck {
+	sint32 auth_res 	= 1; // 应答结果 大于等于 0 成功 小于0 失败
+	uint32 token		  = 2; // 成功时的token
+	bool   assign_mac	= 3; // 是否分配MAC
+	uint64 peer_mac 	= 4; // 自动分配的MAC
+	bool assign_ip		= 5; // 是否分配IP
+	IpNet  peer_addr 	= 6; // 自动分配的IP
+	Sock	 sock				= 7; // 终端注册服务器时的公网IP
+}
+message MsgUnAuth {
+	uint64 peer_mac 	= 1;  // 终端MAC
+	string group   		= 2; // 网络组名称
+	uint32 token		  = 3;  // 注册成功时的token
+}
+message MsgState{
+	uint64 peer_mac 	= 1;  // 终端MAC
+	bool 	 online 	  = 2;  // true 上线 false 下线
+	PeerInfo peer_info = 3; // 客户端信息(只在上线时赋值)
+}
+
+message MsgConfig{
+	uint64 	src_mac   	= 1; // 源mac
+	uint64 	dst_mac   	= 2; // 目的mac
+	string  new_name	  = 3;	// 新名称
+	IpNet   inner_addr 	= 4;  // 网关(仅openwrt可设置)
+}
+
+message MsgConfigAck {
+	uint64 	src_mac   	= 1; // 源mac
+	uint64 	dst_mac   	= 2; // 目的mac
+	bool 	  is_ok		  	= 3;
+	string  tip					= 4;
+}
+
+// 心跳
+message MsgPing {
+	string peer_name 	= 1; // 终端名称
+	IpNet  peer_addr 	= 2; // 终端分配的地址
+	IpNet  inner_addr 	= 3; // 内网地址
+	Statistics	stats = 4; // 统计信息
+	uint32 link_mode = 5; // 连接方式 0 unknown 1 RJ45 2 WIFI 3 GPRS
+	uint32 link_quality= 6; // 信号值 0-100
+}
+
+message MsgPong {
+	uint32 pong_res 	= 1; // 正常为 0
+	Sock	 sock				= 2; // 终端连接服务器时的公网IP
+}
+
+// p2p 启动
+message MsgP2PTrigger {
+	uint64 	src_mac   	= 1; // 源mac
+	uint64 	dst_mac   	= 2; // 目的mac
+}
+
+// P2P
+message MsgP2PAck {
+	uint64 	peer_mac  = 1; // 对端mac
+	bool 	  valid	   = 2;  // 是否可以启动p2p
+	Sock	  self_extern_sock		= 3; // 本端公网出口
+	Sock	  other_extern_sock	= 4; // 对端公网出口
+}
+
+// 组信息查询
+message MsgGroupPeersRequest {
+	uint64 	src_mac   	= 1;
+	string group_name 	= 2;
+}
+message PeerInfo {
+	string  peer_name     = 1; // 终端名称
+	string	dev_type      = 2; // 终端类型(操作系统)
+	uint32 	net_addr      = 3; // 分配IP
+	uint32	inter_addr    = 4; // 本地网卡IP
+	uint64 	peer_mac      = 5; // 虚拟网卡mac
+	uint32 	net_bit_len	  = 6; // 分配IP子网掩码长度
+	uint32	inter_net_bit_len = 7; // 本地网卡IP 子网掩码长度
+	bool    online				= 8; 	// 是否在线
+	uint32 link_mode 			= 9; // 连接方式
+	uint32 link_quality		= 10; // 信号值 0-100
+	Statistics	stats 	  = 11; 	// 流量统计
+	Sock	sock		        = 12;	// 公网通讯地址
+}
+message MsgGroupPeersResponse {
+	uint32 cookie = 1;
+	repeated PeerInfo peer_info = 2;
+}
+
+// 端信息查询
+message MsgPeerLinksRequest{
+	uint64 	src_mac   	= 1;
+	uint64 	dst_mac   	= 2;
+}
+message LinkInfo{
+	uint32 addr = 1;
+	uint64 rx = 2;
+	uint64 tx = 3;
+}
+message MsgPeerLinksResponse{
+	uint64 	src_mac   	= 1;
+	uint64 	dst_mac   	= 2;
+	uint32  cookie 			= 3;
+	repeated LinkInfo link_info = 4;
+}
+
+// 终端发送的各类消息，通常只有其中一个有效
+message MsgPeerFrame {
+	MsgType     	msg_type 		= 1; // 必填字段  field index 用于区分报文类型
+	uint64 			peer_mac 			= 2;
+	uint32 			token 				= 3;
+	MsgAuth			msg_auth 			= 4;
+	MsgUnAuth		msg_un_auth		= 5;
+	MsgPing			msg_ping 			= 6;
+	MsgP2PTrigger   msg_p2p_trigger		= 7;
+	MsgGroupPeersRequest msg_group_peer = 8;
+	MsgPeerLinksRequest msg_links 			= 9;
+	MsgPeerLinksResponse msg_links_ack 	= 10;
+	MsgConfig				msg_config = 11;
+	MsgConfigAck		msg_config_ack = 12;
+}
+// 服务端返回的普通消息
+message MsgServerFrame {
+	MsgType     	msg_type 		= 21; // 必填字段  field index 用于区分报文类型
+	MsgAuthAck		msg_auth_ack 	= 22;
+	MsgState			msg_state		 = 23;
+	MsgPong			msg_pong 		= 24;
+	MsgP2PTrigger   msg_p2p_trigger		= 25;
+	MsgP2PAck	  msg_p2p_ack 	= 26;
+	MsgGroupPeersResponse msg_group_peer_ack = 27;
+	MsgPeerLinksRequest msg_links = 28;
+	MsgPeerLinksResponse msg_links_ack = 29;
+	MsgConfig			msg_config		 = 30;
+	MsgConfigAck  msg_config_ack = 31;
+}
+
+// 数据经由服务端转发 转发时不必复制数据
+// P2P 打通后也使用该报文
+message MsgDataFrame {
+ 	MsgType 		msg_type	= 50; // 必填字段  field index 用于区分报文类型
+	uint64 			src_mac 	= 51;
+	uint64 			dst_mac   = 52; // 目的MAC
+	uint32 			token 		= 53;
+	bytes   		data			= 54;
+}
+

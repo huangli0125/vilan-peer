@@ -1,0 +1,32 @@
+{
+  "name": "vilan-peer",
+  "assetdir": "frontend/dist",
+  "frontend:build": "npm run build",
+  "frontend:install": "npm install",
+  "frontend:dev": "",
+  "frontend:dev:watcher": "npm run build:watch",
+  "wailsjsdir": "./frontend",
+  "version": "2.0.001",
+  "Path": "",
+  "BuildDir": "",
+  "outputfilename": "vilan-peer.exe",
+  "OutputType": "",
+  "Platform": "",
+  "runNonNativeBuildHooks": false,
+  "postBuildHooks": null,
+  "Author": {
+    "name": "huang li",
+    "email": "82767885@qq.com"
+  },
+  "Info": {
+    "companyName": "vilan-peer",
+    "productName": "vilan-peer",
+    "productVersion": "1.0.0",
+    "copyright": "huang li",
+    "comments": "具有P2P功能的分布式局域网组建客户端"
+  },
+  "debounceMS": 100,
+  "devserverurl": "http://localhost:34115",
+  "appargs": "",
+  "nsisType": ""
+}

@@ -1,0 +1,28 @@
+{
+	"server_ip":"192.168.2.100",
+	"server_port":25000,
+	"heartbeat":30,
+	"offline":65,
+	"max_packet_size":65535,
+	"packet_num":128,
+	"p2p_try_count":3,
+	"p2p_retry_interval":3,
+	"enable_log":true,
+	"save_log":false,
+	"log_level":3,
+	"peer_config":{
+		"group_name":"default_group",
+		"group_pwd":"MTIzNDU2Nzg=",
+		"peer_pwd":"MTIzNDU2Nzg=",
+		"name":"",
+		"crypt_type":0
+	},
+	"tap_config":{
+		"name":"",
+		"hw_mac":"",
+		"ip_mode":1,
+		"ip_addr":"10.12.16.5",
+		"ip_mask_len":24,
+		"dev_type":1
+	}
+}
