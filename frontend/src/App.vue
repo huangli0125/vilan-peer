@@ -9,8 +9,8 @@
         </div>
         <div  style="width: 35px;height: 25px;display: flex;justify-content: center;align-items: center;--wails-draggable:none;"
              @click="maxWindow">
-          <RetweetOutlined v-if="maxStatus"  style="color: gray;font-size: 12px"/>
-          <BorderOutlined v-else style="color: gray;font-size: 12px"/>
+          <RetweetOutlined v-if="maxStatus"  style="color: rgb(128,128,128);font-size: 12px"/>
+          <BorderOutlined v-else style="color: rgb(128,128,128);font-size: 12px"/>
         </div>
         <div class="close"
              style="width: 35px;height: 25px;display: flex;justify-content: center;align-items: center;border-radius:0 6px 0 0;--wails-draggable:none;"
@@ -27,8 +27,6 @@
 import {BorderOutlined, CloseOutlined, LineOutlined,RetweetOutlined} from "@ant-design/icons-vue";
 import Home from "@/components/Home.vue";
 import {defineComponent, onMounted, ref} from 'vue';
-import {WindowHide} from "../wailsjs/runtime";
-
 
 export default defineComponent({
   components: {
