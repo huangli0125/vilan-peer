@@ -1,6 +1,6 @@
 {
-	"server_ip":"192.168.2.100",
-	"server_port":25000,
+	"server_ip":"192.168.1.100",
+	"server_port":3000,
 	"heartbeat":30,
 	"offline":65,
 	"max_packet_size":65535,
