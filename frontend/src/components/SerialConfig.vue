@@ -5,7 +5,7 @@
         <a-row :gutter="24" class="row-content">
           <a-col :span="12" style="margin-top: 8px">
             <a-form-item label="远程串口" name="remote_name" required>
-              <a-select v-model:value="serial_config.value.remote_name" style="width: 130px" @select="RemotePortSelect">
+              <a-select :disabled="remotePort!=null && remotePort!==''" v-model:value="serial_config.value.remote_name" style="width: 130px" @select="RemotePortSelect">
                 <a-select-option :value="item.value" v-for="item in remote_ports" :key="item.value">{{item.label}}</a-select-option>
               </a-select>
               <sync-outlined style="margin-left:3px;color: lightseagreen" @click="GetRemotePorts"></sync-outlined>
@@ -23,7 +23,7 @@
           </a-col>
           <a-col :span="12" style="margin-top: 8px">
             <a-form-item label="用户串口" name="name" required>
-              <a-select v-model:value="serial_config.value.name" style="width: 130px">
+              <a-select :disabled="localPort!=null && localPort!==''" v-model:value="serial_config.value.name" style="width: 130px">
                 <a-select-option :value="item.comA" v-for="item in local_ports" :key="item.index">{{item.comB}}</a-select-option>
               </a-select>
               <sync-outlined style="margin-left:3px;color: lightseagreen" @click="GetLocalPorts"></sync-outlined>
@@ -40,7 +40,7 @@
             </a-form-item>
             <a-form-item>
               <div style="text-align: center;">
-                <a-button type="primary" @click="SetPortConfig(serial_config.value)" style="display:inline-block;width:150px;">{{btnText}}</a-button>
+                <a-button type="primary" @click="OpenPort(serial_config.value)" style="display:inline-block;width:150px;">{{btnText}}</a-button>
               </div>
             </a-form-item>
           </a-col>
@@ -111,7 +111,12 @@ export default defineComponent( {
       default: ''
     },
     remotePort:{
+      type: String,
       default: ''
+    },
+    localPort:{
+      type: String,
+      default:''
     }
   },
   emits: ["closeDialog"],
@@ -136,7 +141,7 @@ export default defineComponent( {
       remote_name: '',
       user_port_name: ''
     }});
-    let btnText = ref("设置");
+    let btnText = ref("确定");
     const bauds = [
       {label:"1200 bps",value:1200},
       {label:"2400 bps",value:2400},
@@ -190,8 +195,8 @@ export default defineComponent( {
         message.warn("本地串口获取失败")
       })
     }
-    function GetPortConfig() {
-      window.go.main.SerialApp.GetPortConfig(props.peer.peer_mac,props.remotePort).then((res)=>{
+    function RemotePortSelect(val) {
+      window.go.main.SerialApp.GetPortConfig(props.peer.peer_mac,val).then((res)=>{
         if(res.result && res.config){
           message.info("参数获取成功")
           let config = res.config
@@ -213,16 +218,26 @@ export default defineComponent( {
         // message.warn("参数获取失败")
       })
     }
-    function SetPortConfig(config) {
-      if(!props.remotePort){
-        message.warn("没有指定远程串口")
+    async function OpenPort(config) {
+      if(!config.name){
+        message.warn("请选择用户串口")
+        return;
+      }else if(!config.remote_name){
+        message.warn("请选择远端串口")
         return
       }
+      if(props.remotePort && props.localPort){
+        await window.go.main.SerialApp.ClosePort(props.peer.peer_mac,props.remotePort)
+      }
+      local_ports.value.forEach(sss =>{
+        if(sss.comA == config.name){
+          config.user_port_name = sss.comB
+        }
+      })
       let conf = JSON.stringify(config)
-      window.go.main.SerialApp.SetPortConfig(props.peer.peer_mac,props.remotePort,conf).then((res)=>{
+      window.go.main.SerialApp.OpenPort(props.peer.peer_mac,config.remote_name,config.name,config.user_port_name, conf).then((res)=>{
         if(res.result){
-          message.info("设置成功")
-          ClosePort()
+          message.info("串口打开成功")
           emit("closeDialog")
         }else {
           message.warn(res.tip)
@@ -232,8 +247,31 @@ export default defineComponent( {
         message.warn("串口打开失败")
       })
     }
-    function ClosePort() {
-      window.go.main.SerialApp.ClosePort(props.peer.peer_mac,props.remotePort)
+    function GetPortConfig() {
+      if(!serial_config.value.remote_name){
+        return
+      }
+      window.go.main.SerialApp.GetPortConfig(props.peer.peer_mac,serial_config.value.remote_name).then((res)=>{
+        if(res.result && res.config){
+          message.info("参数获取成功")
+          let config = res.config
+          let old = serial_config.value
+          serial_config.value= {
+            name: old.name,
+            baud: config.baud,
+            parity: config.parity,
+            size: config.size,
+            stop_bits: config.stop_bits,
+            remote_name: old.remote_name,
+            user_port_name: old.user_port_name
+          }
+        }else {
+          message.warn(res.tip)
+        }
+      })
+      .catch(()=>{
+        // message.warn("参数获取失败")
+      })
     }
     function AddComPair() {
       window.go.main.SerialApp.AddLocalPort(port_comA.value,port_comB.value).then((res)=>{
@@ -257,7 +295,10 @@ export default defineComponent( {
     }
     onMounted(()=>{
       serial_config.value.remote_name = props.remotePort
-      GetPortConfig()
+      serial_config.value.name = props.localPort
+      if(props.remotePort){
+        RemotePortSelect(props.remotePort)
+      }
       for (let i=1;i<100;i++){
         port_list.value.push({label:`COM${i}`,value:`COM${i}`})
       }
@@ -279,6 +320,7 @@ export default defineComponent( {
       dataBits,
       stopBits,
       serial_config,
+      remote_ports,
       local_ports,
       connected_ports,
       port_comA,
@@ -287,9 +329,9 @@ export default defineComponent( {
 
       GetRemotePorts,
       GetLocalPorts,
+      RemotePortSelect,
+      OpenPort,
       GetPortConfig,
-      SetPortConfig,
-      ClosePort,
       AddComPair,
       DelComPair,
     };

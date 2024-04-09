@@ -354,7 +354,7 @@ func (s *PortService) GetConnectedPorts(dstId uint64) map[string]interface{} {
 	}
 }
 
-// 获取远程串口列表
+// GetRemotePortList 获取远程串口列表
 func (s *PortService) GetRemotePortList(dstId uint64) map[string]interface{} {
 	if c, ok := s.clientCtx.Load(dstId); ok {
 		ctx := c.(*ClientContext)

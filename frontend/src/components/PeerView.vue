@@ -82,7 +82,7 @@
                     <template #icon><sync-outlined /></template>
                     刷新信息
                   </a-button>
-                  <a-button type="primary" size="small" style="margin-left: 20px" @click="showConfigDialog(null)">
+                  <a-button type="primary" size="small" style="margin-left: 20px" @click="showConfigDialog('','')">
                     <template #icon><plus-circle-outlined /></template>
                     连接新串口
                   </a-button>
@@ -94,17 +94,29 @@
                     :locale="{emptyText:' '}"
                     :row-key="record => record.name"
                     style="height: 180px;font-size:13px;overflow: auto">
-                  <template #bodyCell="{ column,text, serialPort }">
-                    <template v-if="column.key === 'operation'">
-                      <div >
+                  <template #bodyCell="{ column,text, record }">
+                    <template v-if="column.key === 'baud'">
+                      {{ bauds.get(text) }}
+                    </template>
+                    <template v-else-if="column.key === 'parity'">
+                      {{ parities.get(text) }}
+                    </template>
+                    <template v-else-if="column.key === 'size'">
+                      {{ dataBits.get(text) }}
+                    </template>
+                    <template v-else-if="column.key === 'stop_bits'">
+                      {{ stopBits.get(text) }}
+                    </template>
+                    <template v-else-if="column.key === 'operation'">
+                      <div v-if="record" >
                         <a-tooltip type="light" title="设置参数" color="cyan">
-                          <setting-filled style="margin-left:20px;color: white" @click="showConfigDialog(serialPort.name)"></setting-filled>
+                          <setting-filled style="margin-left:20px;color: white" @click="showConfigDialog(record.remote_name,record.name)"></setting-filled>
                         </a-tooltip>
-                        <a-tooltip v-if="!serialPort.isOpen"  type="light" title="打开串口" color="cyan">
-                          <link-outlined :disabled="waiting"  v-if="!serialPort.isOpen" style="margin-left:20px;color: lime" @click="openSerialPort(serialPort.remote_name,serialPort.name)"/>
+                        <a-tooltip v-if="!record.isOpen"  type="light" title="打开串口" color="cyan">
+                          <link-outlined :disabled="waiting"  v-if="!record.isOpen" style="margin-left:20px;color: lime" @click="openSerialPort(record.remote_name,record.name)"/>
                         </a-tooltip>
-                        <a-tooltip v-if="serialPort.isOpen" type="light" title="关闭串口" color="cyan">
-                          <disconnect-outlined :disabled="waiting" v-if="serialPort.isOpen" style="margin-left:20px;color: orangered" @click="closeSerialPort(serialPort.name)" />
+                        <a-tooltip v-if="record.isOpen" type="light" title="关闭串口" color="cyan">
+                          <disconnect-outlined :disabled="waiting" v-if="record.isOpen" style="margin-left:20px;color: orangered" @click="closeSerialPort(record.remote_name)" />
                         </a-tooltip>
                       </div>
                     </template>
@@ -113,12 +125,11 @@
               </div>
             </a-tab-pane>
           </a-tabs>
-
         </div>
       </template>
     </a-table>
     <a-modal v-model:visible="showConfig"  :maskClosable="false" :destroyOnClose="true" title="串口管理" style="width: 540px">
-      <SerialConfig :peer="expandedRecord" :remote-port="remotePort" @closeDialog="showConfig=false"></SerialConfig>
+      <SerialConfig :peer="expandedRecord" :remote-port="remotePort" :local-port="localPort" @closeDialog="serialDialogClosed"></SerialConfig>
       <template #footer>
       </template>
     </a-modal>
@@ -133,6 +144,7 @@ import {
   SearchOutlined, EditOutlined,SettingFilled,SyncOutlined, CheckOutlined, CloseOutlined,LinkOutlined,PlusCircleOutlined,DisconnectOutlined,
 } from '@ant-design/icons-vue'
 import {message} from "ant-design-vue";
+import serialConfig from "@/components/SerialConfig.vue";
 
 const columns = [
   {title: '名称', dataIndex: 'peer_name', width: '25%', key: 'peer_name'},
@@ -158,8 +170,12 @@ const portColumns = [
   {title: '操作', dataIndex: 'operation', key: 'operation', width: '14%', align: 'center',scopedSlots: {customRender: 'operation'}},
 ];
 
-
 export default defineComponent({
+  computed: {
+    serialConfig() {
+      return serialConfig
+    }
+  },
   components: {
     SerialConfig,
     SearchOutlined,
@@ -190,11 +206,38 @@ export default defineComponent({
     let localPorts = ref([]);
     let showConfig = ref(false)
     let remotePort = ref("")
+    let localPort = ref("")
     let waiting = ref(false)
 
     // 展开行记录
     let expandedRowKeys = ref([])
     let expandedRecord = ref('')
+
+    const bauds = new Map([
+      [1200, '1200 bps'],
+      [2400, '2400 bps'],
+      [4800, '4800 bps'],
+      [9600, '9600 bps'],
+      [19200, '19200 bps'],
+      [38400, '38400 bps'],
+      [57600, '57600 bps'],
+      [115200, '115200 bps'],
+    ]);
+    const parities = new Map([
+      [78, '无校验(N)'],
+      [69, '偶校验(E)'],
+      [79, '奇校验(O)'],
+    ]);
+    const dataBits = new Map([
+      [5, 'Data5'],
+      [6, 'Data6'],
+      [7, 'Data7'],
+      [8, 'Data8'],
+    ]);
+    const stopBits = new Map([
+      [1, 'Stop1'],
+      [2, 'Stop2'],
+    ]);
 
     watch(
         () => props.peerState,
@@ -283,10 +326,13 @@ export default defineComponent({
       })
     };
     const loadConnectedPorts = (record)=>{
-      record.connected_ports = []
+      record.connected_ports = reactive([])
       window.go.main.SerialApp.GetConnectedPorts(record.peer_mac).then((res) => {
         if(res.result && res.list && res.list.length>0) {
-          record.connected_ports = res.list
+          record.connected_ports = res.list.map(item=>{
+            item.isOpen = true
+            return item
+          })
         }
       })
       .catch(()=>{
@@ -314,6 +360,13 @@ export default defineComponent({
         waiting.value = false
         if(res.result){
           message.success(res.tip)
+          if(record.connected_ports && record.connected_ports.length>0){
+            record.connected_ports.forEach(item => {
+              if(item.remote_name == remote){
+                item.isOpen = true
+              }
+            })
+          }
         }else {
           message.warn(res.tip)
         }
@@ -333,19 +386,47 @@ export default defineComponent({
         }else {
           message.warn(res.tip)
         }
+        if(record.connected_ports && record.connected_ports.length>0){
+          record.connected_ports.forEach(item => {
+            if(item.remote_name == name){
+              item.isOpen = false
+            }
+          })
+        }
       })
       .catch(()=>{
         waiting.value = false
         message.warn("串口关闭失败")
       })
     };
-    const showConfigDialog = (remote) =>{
+    const showConfigDialog = (remote,local) =>{
       if(remote){
-        window.go.main.SerialApp.ClosePort(expandedRecord.value.peer_mac,remote)
-        remotePort.value = remote
+        // window.go.main.SerialApp.ClosePort(expandedRecord.value.peer_mac,remote)
       }
+      remotePort.value = remote
+      localPort.value = local
       showConfig.value = true
     }
+    const serialDialogClosed = ()=>{
+      setTimeout(()=>{
+        expandedRecord.value.connected_ports = []
+        window.go.main.SerialApp.GetConnectedPorts(expandedRecord.value.peer_mac).then((res) => {
+          if(res.result && res.list && res.list.length>0) {
+            let ports = res.list.map(item=>{
+              item.isOpen = true
+              return item
+            })
+            expandedRecord.value.connected_ports = reactive(ports)
+          }
+          showConfig.value = false
+        })
+        .catch(()=>{
+          showConfig.value = false
+          message.warn("已连接串口获取失败")
+        })
+      },500)
+    }
+
     const rowClick = (record) => {
       return {
         onClick: () => {
@@ -433,6 +514,10 @@ export default defineComponent({
       columns,
       linkColumns,
       portColumns,
+      bauds,
+      parities,
+      dataBits,
+      stopBits,
       peers,
       linkModes,
       filterResult,
@@ -445,6 +530,7 @@ export default defineComponent({
       localPorts,
       showConfig,
       remotePort,
+      localPort,
       waiting,
 
 
@@ -454,6 +540,7 @@ export default defineComponent({
       openSerialPort,
       closeSerialPort,
       showConfigDialog,
+      serialDialogClosed,
       rowClick,
       rowExpand,
       onSelectChange,
